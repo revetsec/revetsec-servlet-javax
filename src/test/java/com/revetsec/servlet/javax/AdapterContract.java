@@ -16,6 +16,8 @@
 
 package com.revetsec.servlet.javax;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.List;
 
 /**
@@ -54,7 +56,7 @@ final class AdapterContract {
 	/**
 	 * The adapter package as a relative source path, such as {@code com/revetsec/servlet/javax}.
 	 */
-	static String adapterPackagePath() {
+	static @NonNull String adapterPackagePath() {
 		return ADAPTER_PACKAGE.replace('.', '/');
 	}
 }
