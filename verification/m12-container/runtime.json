@@ -1,0 +1,10 @@
+{
+  "version": "9.0.123",
+  "archiveSha512": "64b1130e719399c0a409e6996081433b16af8d9c89266c7aaa9849af70a1815feca91e13896f5ccc41451dc5759716d1c84882682de955822c30509de102f290",
+  "url": "https://downloads.apache.org/tomcat/tomcat-9/v9.0.123/bin/apache-tomcat-9.0.123.tar.gz",
+  "checkedOn": "2026-10-13",
+  "license": "Apache-2.0",
+  "releaseSource": "https://tomcat.apache.org/download-90.cgi",
+  "advisorySource": "https://tomcat.apache.org/security-9.html",
+  "scope": "Test-only real Servlet runtime, no production dependency"
+}
