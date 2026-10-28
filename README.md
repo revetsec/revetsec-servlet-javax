@@ -76,6 +76,10 @@ dependencies {
 
 Standalone public-key publication without an OAuth authorization server is available through `ServletJwks`; see the [JWKS usage guide](docs/jwks.md) for RS384, certificate chains and other supported algorithms.
 
+### TOTP and recovery codes
+
+Core `TotpAuthenticator` can be used directly in a Servlet application. The [TOTP cookbook](docs/totp.md) supplies a Java 17 recipe for app-owned admission, pending login, session completion, recovery codes and management; it adds no adapter API or runtime dependency.
+
 ### Status
 
 This adapter is **pre-release**, like Revetsec core. `ServletSaml` passes the original POST body, every Content-Type value and raw Redirect query to core, and writes prepared redirects/forms. The application selects IdPs, sessions, cookies and CSP. SCIM raw query/projection/conditional helpers, bounded body reads and exact prepared response writing are available through `ServletScim` and `ServletScimBodyResult`. OAuth, bearer, issuer and WebAuthn helpers are thin transport bridges; see the [paired workflow recipes](docs/workflows.md) for compiled source, concrete PostgreSQL reference-store wiring, explicit application duties and the M12 real-container runner. The [SCIM guide](docs/scim.md) and [SAML guide](docs/saml.md) document their separate container runners.

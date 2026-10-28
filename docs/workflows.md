@@ -10,6 +10,7 @@ These `javax.servlet` recipes pair with the `jakarta.servlet` recipes in the sib
 | SAML | `SokletSaml` | `ServletSaml` | `ServletSaml` | Paired SAML container fixtures |
 | SCIM | `SokletScim` | `ServletScim` | `ServletScim` | Paired SCIM container fixtures |
 | WebAuthn | Core API in the Soklet passkey demo | `ServletWebAuthn` | `ServletWebAuthn` | Soklet browser demo; paired source; M12 container fixture |
+| TOTP and recovery | Core API in the Soklet TOTP demo | Core `TotpAuthenticator`; app-owned Servlet recipe | Same core API and paired Jakarta recipe | Paired [TOTP guide](totp.md), Java 17 cookbook and private Tomcat fixture |
 
 The table maps integration paths and sources. A real-container result is established only by a successful source-bound runner receipt; the table itself is not a test result.
 
