@@ -19,28 +19,29 @@ import com.revetsec.json.JsonObject;
 import com.revetsec.json.JsonArray;
 import com.revetsec.json.JsonString;
 import com.revetsec.scim.*;
-import com.soklet.HttpMethod;
-import com.soklet.Request;
-import com.soklet.MarshaledResponseBody;
-import com.soklet.servlet.javax.SokletHttpServletRequest;
-import com.soklet.servlet.javax.SokletHttpServletResponse;
 import javax.servlet.ReadListener;
 import javax.servlet.ServletInputStream;
+import javax.servlet.WriteListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
 import javax.servlet.ServletOutputStream;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.lang.reflect.Proxy;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -79,9 +80,8 @@ final class ServletScimTests {
 
     @Test void bodyReadsAreDefensiveAndCoreParsersReceiveExactUtf8Bytes() {
         byte[] original = ("{\"schemas\":[\"" + SCHEMA + "\"],\"userName\":\"private+a%20é\"}").getBytes(StandardCharsets.UTF_8);
-        Request raw = Request.withRawUrl(HttpMethod.POST, "/scim/Users")
-                .headers(Map.of("Content-Type", List.of("application/scim+json"))).body(original).build();
-        HttpServletRequest request = SokletHttpServletRequest.fromRequest(raw);
+        HttpServletRequest request = request("", Map.of("Content-Type", List.of("application/scim+json")),
+                byteStream(original));
         ServletScimBodyResult.Read read = assertInstanceOf(ServletScimBodyResult.Read.class,
                 ServletScim.bodyResultFor(provider(), request));
         byte[] exposed = read.getBodyWithPersonalData();
@@ -175,29 +175,50 @@ final class ServletScimTests {
                 provider.notModifiedResponseResult(resource())).getResponse();
         for (ScimResponse prepared : List.of(provider.errorResponse(ScimError.invalidValueInstance()),
                 provider.noContentResponse(), notModified)) {
-            SokletHttpServletResponse response = SokletHttpServletResponse.fromHttpServletRequest(request(""));
+            CapturedResponse response = new CapturedResponse();
             AtomicInteger streamCalls = new AtomicInteger();
-            ServletScim.writeResponse(new HttpServletResponseWrapper(response) {
+            ServletScim.writeResponse(new HttpServletResponseWrapper(response.response()) {
                 @Override public @NonNull ServletOutputStream getOutputStream() throws IOException {
-                    streamCalls.incrementAndGet(); return response.getOutputStream();
+                    streamCalls.incrementAndGet(); return response.stream;
                 }
             }, prepared);
-            assertEquals(prepared.getStatusCode(), response.getStatus());
-            prepared.getHeaders().forEach((name, values) -> assertEquals(values, List.copyOf(response.getHeaders(name))));
-            assertArrayEquals(prepared.toHttpBodyWithPersonalData(), response.toMarshaledResponse().getBody().map(body -> assertInstanceOf(MarshaledResponseBody.Bytes.class, body).getBytes()).orElseGet(() -> new byte[0]));
+            assertEquals(prepared.getStatusCode(), response.status);
+            prepared.getHeaders().forEach((name, values) -> assertEquals(values, response.headers.get(name)));
+            assertArrayEquals(prepared.toHttpBodyWithPersonalData(), response.body.toByteArray());
             assertEquals(prepared.toHttpBodyWithPersonalData().length == 0 ? 0 : 1, streamCalls.get());
         }
     }
 
     @Test void transportWriteFailureStaysAnIOException() {
-        SokletHttpServletResponse response = SokletHttpServletResponse.fromHttpServletRequest(request(""));
-        assertThrows(IOException.class, () -> ServletScim.writeResponse(new HttpServletResponseWrapper(response) {
+        CapturedResponse response = new CapturedResponse();
+        assertThrows(IOException.class, () -> ServletScim.writeResponse(new HttpServletResponseWrapper(response.response()) {
             @Override public @NonNull ServletOutputStream getOutputStream() throws IOException { throw new IOException("private"); }
         }, provider().errorResponse(ScimError.invalidValueInstance())));
     }
 
     private static @NonNull HttpServletRequest request(@NonNull String query) {
-        return SokletHttpServletRequest.fromRequest(Request.fromRawUrl(HttpMethod.GET, "/scim/Users" + query));
+        return request(query, Map.of(), new CountingStream(0, null));
+    }
+    private static @NonNull HttpServletRequest request(@NonNull String query,
+            @NonNull Map<@NonNull String, @NonNull List<@NonNull String>> values,
+            @NonNull ServletInputStream stream) {
+        String rawQuery = query.startsWith("?") ? query.substring(1) : query;
+        return (HttpServletRequest) Proxy.newProxyInstance(HttpServletRequest.class.getClassLoader(),
+                new Class<?>[]{HttpServletRequest.class}, (proxy, called, arguments) -> switch (called.getName()) {
+                    case "getQueryString" -> rawQuery;
+                    case "getHeaders" -> Collections.enumeration(values.getOrDefault((String) arguments[0], List.of()));
+                    case "getInputStream" -> stream;
+                    default -> throw new UnsupportedOperationException(called.getName());
+                });
+    }
+    private static @NonNull ServletInputStream byteStream(byte @NonNull [] bytes) {
+        return new ServletInputStream() {
+            private int position;
+            @Override public int read() { return position < bytes.length ? bytes[position++] & 0xff : -1; }
+            @Override public boolean isFinished() { return position == bytes.length; }
+            @Override public boolean isReady() { return true; }
+            @Override public void setReadListener(@Nullable ReadListener listener) { }
+        };
     }
     private static @NonNull HttpServletRequest headers(@NonNull String expected,
             @NonNull Enumeration<@NonNull String> values) {
@@ -238,5 +259,29 @@ final class ServletScimTests {
         @Override public boolean isReady() { return true; }
         @Override public void setReadListener(@Nullable ReadListener listener) { }
         @Override public void close() { closed = true; }
+    }
+    private static final class CapturedResponse {
+        private final @NonNull Map<@NonNull String, @NonNull List<@NonNull String>> headers = new LinkedHashMap<>();
+        private final @NonNull ByteArrayOutputStream body = new ByteArrayOutputStream();
+        private final @NonNull ServletOutputStream stream = new ServletOutputStream() {
+            @Override public void write(int value) { body.write(value); }
+            @Override public boolean isReady() { return true; }
+            @Override public void setWriteListener(@Nullable WriteListener listener) { }
+        };
+        private int status;
+        private @NonNull HttpServletResponse response() {
+            return (HttpServletResponse) Proxy.newProxyInstance(HttpServletResponse.class.getClassLoader(),
+                    new Class<?>[]{HttpServletResponse.class}, (proxy, called, arguments) -> {
+                        switch (called.getName()) {
+                            case "setStatus" -> status = (Integer) arguments[0];
+                            case "setHeader" -> headers.put((String) arguments[0], new ArrayList<>(List.of((String) arguments[1])));
+                            case "addHeader" -> headers.computeIfAbsent((String) arguments[0], ignored -> new ArrayList<>())
+                                    .add((String) arguments[1]);
+                            case "getOutputStream" -> { return stream; }
+                            default -> throw new UnsupportedOperationException(called.getName());
+                        }
+                        return null;
+                    });
+        }
     }
 }

@@ -24,6 +24,8 @@ import io
 import json
 from pathlib import Path
 import re
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -280,7 +282,8 @@ class WorkflowTests(unittest.TestCase):
     def test_every_core_checkout_uses_the_pin_after_validating_it(self):
         core_jobs = {name: job for name, job in self.jobs().items()
                      if "repository: revetsec/revetsec" in job}
-        self.assertEqual({"drift", "test", "static-analysis", "scim-container", "m12-container", "saml-container"},
+        self.assertEqual({"drift", "test", "static-analysis", "scim-container", "m12-container", "saml-container",
+                          "totp-container", "jwks-container"},
                          set(core_jobs))
         for name, job in core_jobs.items():
             with self.subTest(job=name):
@@ -295,7 +298,8 @@ class WorkflowTests(unittest.TestCase):
 
     def test_core_is_installed_without_tests_or_javadoc(self):
         build_jobs = {name: job for name, job in self.jobs().items() if "-f core/pom.xml" in job}
-        self.assertEqual({"test", "static-analysis", "scim-container", "m12-container", "saml-container"},
+        self.assertEqual({"test", "static-analysis", "scim-container", "m12-container", "saml-container",
+                          "totp-container", "jwks-container"},
                          set(build_jobs))
         for name, job in build_jobs.items():
             with self.subTest(job=name):
@@ -314,6 +318,36 @@ class WorkflowTests(unittest.TestCase):
 
     def test_builds_on_every_supported_jdk(self):
         self.assertIn("jdk: ['17', '21', '25', '27']", self.jobs()["test"])
+
+    def test_totp_and_jwks_qualify_pinned_real_container_and_upload_receipts(self):
+        for name, runner in (("totp", "totp-container"), ("jwks", "jwks-container")):
+            job = self.jobs()[runner]
+            with self.subTest(job=runner):
+                self.assertIn("needs: drift", job)
+                self.assertIn("java-version: '17'", job)
+                self.assertIn("adapter/verification/m12-container/runtime.json", job)
+                self.assertIn("curl --fail --location --proto '=https' --tlsv1.2", job)
+                self.assertIn(f"python3 adapter/verification/{name}-container/run.py", job)
+                self.assertIn('--tomcat-archive "$RUNNER_TEMP/tomcat.tar.gz"', job)
+                self.assertIn('--core-jar core/target/revetsec-1.0.0-SNAPSHOT.jar', job)
+                self.assertIn('--adapter-jar adapter/target/revetsec-servlet-javax-1.0.0-SNAPSHOT.jar', job)
+                self.assertIn('--java-home "$JAVA_HOME"', job)
+                self.assertIn(f'--output "$RUNNER_TEMP/{name}-container-evidence"', job)
+                self.assertIn("if: always()", job)
+                self.assertIn(f"name: {name}-servlet-javax-${{{{ github.run_id }}}}-${{{{ github.run_attempt }}}}", job)
+                self.assertIn(f"path: ${{{{ runner.temp }}}}/{name}-container-evidence/RESULT.json", job)
+                self.assertIn("if-no-files-found: error", job)
+        self.assertIn("--core-source core", self.jobs()["jwks-container"])
+
+    def test_jwks_runner_cannot_drop_qualification_assertions(self):
+        runner = SCRIPT_DIRECTORY.parent / "verification/jwks-container/run.py"
+        normal = subprocess.run([sys.executable, str(runner), "--help"], capture_output=True, text=True)
+        self.assertEqual(0, normal.returncode, normal.stderr)
+        self.assertIn("--core-source", normal.stdout)
+        optimized = subprocess.run([sys.executable, "-O", str(runner), "--help"],
+                                   capture_output=True, text=True)
+        self.assertNotEqual(0, optimized.returncode)
+        self.assertIn("Python optimization disables qualification assertions", optimized.stderr)
 
     def test_every_action_is_pinned_to_a_commit(self):
         uses = re.findall(r"uses: ([^\s]+)", self.workflow)

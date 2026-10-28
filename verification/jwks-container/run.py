@@ -35,8 +35,10 @@ def digest(path, algorithm="sha256"):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    if not __debug__: parser.error("Python optimization disables qualification assertions")
     parser.add_argument("--tomcat-archive", required=True, type=Path)
     parser.add_argument("--core-jar", required=True, type=Path)
+    parser.add_argument("--core-source", type=Path)
     parser.add_argument("--adapter-jar", required=True, type=Path)
     parser.add_argument("--java-home", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
@@ -47,7 +49,8 @@ def main():
     pins = json.loads(runtime.read_text())
     if digest(args.tomcat_archive, "sha512") != pins["archiveSha512"]:
         raise SystemExit("Tomcat archive does not match the reviewed runtime pin")
-    certificates = repo.parent / "revetsec/src/test/resources/fixtures/jwks"
+    core_source = args.core_source if args.core_source is not None else repo.parent / "revetsec"
+    certificates = core_source / "src/test/resources/fixtures/jwks"
     inputs = [runtime, Path(__file__), fixture / "JwksServlet.java", repo / "pom.xml",
               *sorted((repo / "src/main/java").rglob("*.java")),
               certificates / "publisher-leaf.pem", certificates / "publisher-root.pem"]

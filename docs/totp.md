@@ -108,6 +108,7 @@ python3 verification/totp-container/run.py \
   --output /private/tmp/revetsec-totp-javax-evidence
 ```
 
-The current hosted adapter CI core pin predates TOTP. After the owner pushes
-the updated core, advance that pin and run hosted checks; the local runner's
-receipt does not imply hosted CI has passed.
+The hosted adapter CI core pin now includes TOTP. The `totp-container` CI job
+runs the same Java 17 real-container probe and uploads its redacted receipt after the
+drift check. Run hosted checks after pushing this adapter change; the local
+runner's receipt does not imply hosted CI has passed.

@@ -89,9 +89,12 @@ After building core and this adapter, run the focused probe with the local Tomca
 python3 verification/jwks-container/run.py \
   --tomcat-archive /private/tmp/apache-tomcat-9.0.123.tar.gz \
   --core-jar ../revetsec/target/revetsec-1.0.0-SNAPSHOT.jar \
+  --core-source ../revetsec \
   --adapter-jar target/revetsec-servlet-javax-1.0.0-SNAPSHOT.jar \
   --java-home "$JAVA_HOME" \
   --output /private/tmp/revetsec-jwks-javax-container
 ```
 
 The probe compiles the [servlet example](../verification/jwks-container/JwksServlet.java) for Java 17, publishes core's public test certificate chain with RS384, and checks actual GET, HEAD, conditional 304, repeated conditional fields, oversized-field 400 and method 405 responses. It binds only to `127.0.0.1`, stops its own container, and writes a source/JAR/runtime-bound `RESULT.json` and runtime log. No external service or private signing key is used. The sibling core checkout's public JWKS certificate fixtures must be present.
+
+The `--core-source` option identifies the core checkout containing those public certificate fixtures. It defaults to the local sibling `../revetsec`; CI passes its pinned checkout as `core`. The `jwks-container` CI job runs this Java 17 probe and uploads the redacted receipt after the drift check. A local receipt does not establish that hosted CI has passed.

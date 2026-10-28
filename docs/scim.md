@@ -39,4 +39,4 @@ python3 verification/scim-container/run.py \
   --output /private/tmp/revetsec-scim-javax-evidence
 ```
 
-The Jakarta and javax examples, runner and API signatures are paired; only Servlet imports, package names and the reviewed Tomcat runtime differ. Both adapter artifacts keep every production dependency `provided`; the concrete Soklet Servlet request/response implementations used by unit tests stay test scope.
+The Jakarta and javax examples, runner and API signatures are paired; only Servlet imports, package names and the reviewed Tomcat runtime differ. Both adapter artifacts keep every production dependency `provided`. SCIM unit tests use Servlet-only request/response proxies, so the Java 17 test lane needs no Soklet runtime; the real-container fixture checks transport behavior in Tomcat.
