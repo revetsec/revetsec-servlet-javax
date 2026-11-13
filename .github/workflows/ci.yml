@@ -18,7 +18,7 @@ env:
   # ==================================================================================================
   # Pushed core baseline shared by SCIM, SAML, M12, TOTP and JWKS container qualification.
   # ==================================================================================================
-  REVETSEC_CORE_SHA: '20f348d6a66f89e5781785e8c933134718441332'
+  REVETSEC_CORE_SHA: 'f6947414e8bb0e807a2959675c10994866ed3e49'
 
 permissions:
   contents: read
