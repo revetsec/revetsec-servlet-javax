@@ -34,7 +34,7 @@ mvn -B -ntp -Dmaven.javadoc.skip=true package
 SERVLET_API_JAR="$HOME/.m2/repository/javax/servlet/javax.servlet-api/4.0.1/javax.servlet-api-4.0.1.jar"
 mkdir -p /private/tmp/revetsec-javax-workflow-recipes
 "$JAVA_HOME/bin/javac" --release 17 \
-  -cp "../revetsec/target/revetsec-1.0.0-SNAPSHOT.jar:target/revetsec-servlet-javax-1.0.0-SNAPSHOT.jar:$SERVLET_API_JAR" \
+  -cp "../revetsec/target/revetsec-1.0.0.jar:target/revetsec-servlet-javax-1.0.0.jar:$SERVLET_API_JAR" \
   -d /private/tmp/revetsec-javax-workflow-recipes docs/ServletWorkflowRecipes.java
 ```
 
@@ -55,7 +55,7 @@ mvn -B -ntp -f ../revetsec/examples/postgresql-pending-store/pom.xml -Dmaven.tes
 SERVLET_API_JAR="$HOME/.m2/repository/javax/servlet/javax.servlet-api/4.0.1/javax.servlet-api-4.0.1.jar"
 mkdir -p /private/tmp/revetsec-javax-durable-recipes
 "$JAVA_HOME/bin/javac" --release 17 -proc:none -Xlint:all -Werror \
-  -cp "../revetsec/target/revetsec-1.0.0-SNAPSHOT.jar:target/revetsec-servlet-javax-1.0.0-SNAPSHOT.jar:$SERVLET_API_JAR:../revetsec/examples/postgresql-pending-store/target/postgresql-pending-store-1.0.0-SNAPSHOT.jar" \
+  -cp "../revetsec/target/revetsec-1.0.0.jar:target/revetsec-servlet-javax-1.0.0.jar:$SERVLET_API_JAR:../revetsec/examples/postgresql-pending-store/target/postgresql-pending-store-1.0.0.jar" \
   -d /private/tmp/revetsec-javax-durable-recipes \
   docs/ServletWorkflowRecipes.java docs/ServletDurableBackendRecipe.java
 ```
@@ -105,8 +105,8 @@ Build core and this adapter first, then supply the reviewed Tomcat archive from 
 ```shell
 python3 verification/m12-container/calibrate.py \
   --tomcat-archive /private/tmp/apache-tomcat-9.0.123.tar.gz \
-  --core-jar ../revetsec/target/revetsec-1.0.0-SNAPSHOT.jar \
-  --adapter-jar target/revetsec-servlet-javax-1.0.0-SNAPSHOT.jar \
+  --core-jar ../revetsec/target/revetsec-1.0.0.jar \
+  --adapter-jar target/revetsec-servlet-javax-1.0.0.jar \
   --java-home "$JAVA_HOME" \
   --output /private/tmp/revetsec-m12-javax-evidence
 ```

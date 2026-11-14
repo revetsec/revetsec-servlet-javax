@@ -2,7 +2,7 @@
 
 Revetsec helpers for applications on the `javax.servlet` API.
 
-**This adapter is pre-release.** OAuth client, bearer, issuer, SAML, SCIM and WebAuthn transport helpers are implemented. The version is `1.0.0-SNAPSHOT`, and there is no compatibility promise before 1.0.0.
+Version 1.0.0 is this adapter's first compatibility release. OAuth client, bearer, issuer, SAML, SCIM and WebAuthn transport helpers are implemented.
 
 ### What Is It?
 
@@ -27,12 +27,7 @@ Adapter 1.x requires Revetsec core 1.0.0 or later. JDK 17 or newer is required, 
 
 Revetsec core and the Servlet API are `provided` dependencies of this adapter, so your application declares all three coordinates below. The adapter is compiled against `javax.servlet-api` 4.0.1 (Servlet 4.0). At runtime the Servlet API comes from your servlet container, so declare it `provided` (Maven) or `compileOnly` (Gradle).
 
-**Nothing has been published yet, including snapshots.** Until the first release, install Revetsec core and then this adapter into your local Maven repository from their source checkouts:
-
-```shell
-$ mvn -B -ntp -f revetsec/pom.xml -DskipTests -Dmaven.javadoc.skip=true install
-$ mvn -B -ntp -f revetsec-servlet-javax/pom.xml -Dmaven.javadoc.skip=true install
-```
+Revetsec core and this adapter are distributed through Maven Central. The Servlet API is also resolved from Central and supplied at runtime by the application container.
 
 #### Maven
 
@@ -40,12 +35,12 @@ $ mvn -B -ntp -f revetsec-servlet-javax/pom.xml -Dmaven.javadoc.skip=true instal
 <dependency>
   <groupId>com.revetsec</groupId>
   <artifactId>revetsec-servlet-javax</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
 </dependency>
 <dependency>
   <groupId>com.revetsec</groupId>
   <artifactId>revetsec</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
 </dependency>
 <dependency>
   <groupId>javax.servlet</groupId>
@@ -57,17 +52,14 @@ $ mvn -B -ntp -f revetsec-servlet-javax/pom.xml -Dmaven.javadoc.skip=true instal
 
 #### Gradle
 
-A Gradle build resolves locally installed snapshots only when `mavenLocal()` is among its repositories.
-
 ```groovy
 repositories {
-  mavenLocal()
   mavenCentral()
 }
 
 dependencies {
-  implementation 'com.revetsec:revetsec-servlet-javax:1.0.0-SNAPSHOT'
-  implementation 'com.revetsec:revetsec:1.0.0-SNAPSHOT'
+  implementation 'com.revetsec:revetsec-servlet-javax:1.0.0'
+  implementation 'com.revetsec:revetsec:1.0.0'
   compileOnly 'javax.servlet:javax.servlet-api:4.0.1'
 }
 ```
